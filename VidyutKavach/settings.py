@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 
+TIME_ZONE = 'UTC'  # Or your preferred timezone
+USE_TZ = True
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -94,6 +96,30 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'VidyutKavach_Data',
+#         'USER': 'vidyutkavach_data_user',
+#         'PASSWORD': 'oXWOMsCKis5iIBkD84igHm2wcsYbfnOl',
+#         'HOST': 'dpg-cp737huv3ddc73ft8r60-a',
+#         'PORT': '5432',
+#     }
+# }
+
+import os
+# import dj_database_url
+
+
+# DATABASES = {
+#     'default': dj_database_url.config(conn_max_age=600)
+# }
+
+# Static files settings
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+
 
 
 # Password validation
@@ -148,10 +174,6 @@ REST_FRAMEWORK = {
     ),
 }
 
-SIMPLE_JWT = {
-    'AUTH_HEADER_TYPES': ('Bearer',),
-}
-
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 DEFAULT_FROM_EMAIL = 'webmaster@localhost'
@@ -164,47 +186,19 @@ EMAIL_HOST_PASSWORD = 'djkbolzvzmcyambl'
 DEFAULT_FROM_EMAIL = 'otpkjaef@gmail.com'
 
 
-SITE_ID = 1
-
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_USERNAME_REQUIRED = True
-ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+from datetime import timedelta
 
 SIMPLE_JWT = {
-    'AUTH_HEADER_TYPES': ('Bearer',),
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'ROTATE_REFRESH_TOKENS': False,
+    'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
-    'UPDATE_LAST_LOGIN': False,
-    'AUTH_COOKIE': 'access_token',  # Cookie name for storing the access token
-    'AUTH_COOKIE_SECURE': False,  # Should be True in production
-    'AUTH_COOKIE_HTTP_ONLY': True,
-    'AUTH_COOKIE_PATH': '/',
-    'AUTH_COOKIE_SAMESITE': 'Lax',
 }
 
-# VidyutKavach/settings.py
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'root': {
-        'handlers': ['console'],
-        'level': 'DEBUG',
-    },
-}
 
 
 # settings.py
 
-ACCOUNT_ADAPTER = "users.adapters.CustomAccountAdapter"
 CORS_ALLOW_ALL_ORIGINS: True
 CORS_ALLOW_PRIVATE_NETWORK: True

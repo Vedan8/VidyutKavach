@@ -1,112 +1,98 @@
 # users/views.py
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from django_otp.oath import TOTP
-from django_otp.util import random_hex
-from django.core.mail import send_mail
-from django.conf import settings
 from django.contrib.auth.models import User
-import binascii
-import logging
-from allauth.account.models import EmailConfirmation, EmailConfirmationHMAC
-from dj_rest_auth.registration.serializers import VerifyEmailSerializer
+from django.core.mail import send_mail
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
+from .models import OTP
+from .serializers import OTPRequestSerializer, OTPVerifySerializer, UserRegistrationSerializer
+from django.utils import timezone
+from datetime import timedelta
+from rest_framework.permissions import IsAuthenticated
+from .models import Address
+from .serializers import AddressSerializer
 
-logger = logging.getLogger(__name__)
+# users/views.py
+from django.contrib.auth.models import User
+from django.utils import timezone
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
+from .models import OTP
+from .serializers import OTPRequestSerializer, OTPVerifySerializer, UserRegistrationSerializer
+from datetime import timedelta
 
-class OTPVerification(APIView):
+class UserRegistrationView(APIView):
     def post(self, request):
-        email = request.data.get('email')
-        if not email:
-            return Response({'detail': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = UserRegistrationSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'message': 'User registered successfully'}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        user = User.objects.filter(email=email).first()
-        if not user:
-            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        try:
-            key = binascii.unhexlify(random_hex(20))
-            totp = TOTP(key=key, step=300)
-            totp.time = int(totp.time / totp.step) * totp.step
-            otp = totp.token()
-
+class OTPRequestView(APIView):
+    def post(self, request):
+        serializer = OTPRequestSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            try:
+                user = User.objects.get(email=email)
+            except User.DoesNotExist:
+                return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+            
+            otp, created = OTP.objects.get_or_create(user=user)
+            otp.generate_otp()
+            # Send OTP via email
             send_mail(
                 'Your OTP Code',
-                f'Your OTP code is {otp}',
-                settings.DEFAULT_FROM_EMAIL,
+                f'Your OTP code is {otp.otp_code}',
+                'from@example.com',  # From email address
                 [email],
                 fail_silently=False,
             )
+            return Response({'message': 'OTP sent'}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-            # Store the OTP and email in the session
-            request.session['otp'] = otp
-            request.session['otp_email'] = email
-
-            logger.debug(f'Generated OTP: {otp} for email: {email}')
-
-            return Response({'detail': 'OTP sent'}, status=status.HTTP_200_OK)
-        except Exception as e:
-            logger.error(f'Error sending OTP email: {e}')
-            return Response({'detail': 'Error sending OTP email'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    def put(self, request):
-        otp = request.data.get('otp')
-        email = request.data.get('email')
-
-        if not otp:
-            return Response({'detail': 'OTP is required'}, status=status.HTTP_400_BAD_REQUEST)
-
-        if not email:
-            return Response({'detail': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
-
-        user = User.objects.filter(email=email).first()
-        if not user:
-            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        session_otp = request.session.get('otp')
-        session_email = request.session.get('otp_email')
-
-        if int(session_otp) == int(otp) and session_email == email:
-            # Update user verification status
-            user.is_verified = True
-            user.save()
-            
-            return Response({'detail': 'OTP verified'}, status=status.HTTP_200_OK)
-        else:
-            return Response({'detail': 'Invalid OTP'}, status=status.HTTP_400_BAD_REQUEST)
-
-class CustomLoginView(APIView):
+class OTPVerifyView(APIView):
     def post(self, request):
-        email = request.data.get('email')
-        password = request.data.get('password')
-
-        user = User.objects.filter(email=email).first()
-        if user and user.check_password(password):
-            return Response({'detail': 'Login successful'}, status=status.HTTP_200_OK)
-        else:
-            return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
-
-class LogoutView(APIView):
-    def post(self, request):
-        request.session.flush()
-        return Response({'detail': 'Logged out successfully'}, status=status.HTTP_200_OK)
-
-
-class CustomConfirmEmailView(APIView):
-    def get(self, request, *args, **kwargs):
-        key = kwargs.get('key')
-        email_confirmation = None
-
-        try:
-            email_confirmation = EmailConfirmationHMAC.from_key(key)
-        except EmailConfirmation.DoesNotExist:
+        serializer = OTPVerifySerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            otp_code = serializer.validated_data['otp_code']
             try:
-                email_confirmation = EmailConfirmation.objects.get(key=key)
-            except EmailConfirmation.DoesNotExist:
-                return Response({"detail": "Invalid key"}, status=status.HTTP_400_BAD_REQUEST)
+                user = User.objects.get(email=email)
+                otp = OTP.objects.get(user=user, otp_code=otp_code)
 
-        if email_confirmation:
-            email_confirmation.confirm(request)
-            return Response({"detail": "Email confirmed"}, status=status.HTTP_200_OK)
-        return Response({"detail": "Invalid key"}, status=status.HTTP_400_BAD_REQUEST)
+                current_time = timezone.now()
+                print(f"Current time: {current_time}")
+                print(f"OTP created_at: {otp.created_at}")
+                print(f"Difference: {current_time - otp.created_at}")
+
+                # Check if OTP is expired (valid for 5 minutes)
+                # if otp.created_at < timezone.now() - timedelta(minutes=5):
+                #     return Response({'error': 'OTP expired'}, status=status.HTTP_400_BAD_REQUEST)
+                
+                # Generate JWT tokens
+                refresh = RefreshToken.for_user(user)
+                return Response({
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                }, status=status.HTTP_200_OK)
+            except (User.DoesNotExist, OTP.DoesNotExist):
+                return Response({'error': 'Invalid OTP or user'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserAddressView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        address = Address.objects.filter(user=user).first()
+        if address:
+            serializer = AddressSerializer(address)
+            return Response(serializer.data)
+        else:
+            return Response({'message': 'No address found for the user'}, status=status.HTTP_404_NOT_FOUND)
