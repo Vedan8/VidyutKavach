@@ -5,6 +5,7 @@ from .models import Address
 
 class OTPRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
 
 class OTPVerifySerializer(serializers.Serializer):
     email = serializers.EmailField()

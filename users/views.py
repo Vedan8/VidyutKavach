@@ -12,17 +12,8 @@ from datetime import timedelta
 from rest_framework.permissions import IsAuthenticated
 from .models import Address
 from .serializers import AddressSerializer
-
-# users/views.py
-from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
 from django.utils import timezone
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
-from .models import OTP
-from .serializers import OTPRequestSerializer, OTPVerifySerializer, UserRegistrationSerializer
-from datetime import timedelta
 
 class UserRegistrationView(APIView):
     def post(self, request):
@@ -37,10 +28,10 @@ class OTPRequestView(APIView):
         serializer = OTPRequestSerializer(data=request.data)
         if serializer.is_valid():
             email = serializer.validated_data['email']
-            try:
-                user = User.objects.get(email=email)
-            except User.DoesNotExist:
-                return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+            password = serializer.validated_data['password']
+            user = authenticate(email=email, password=password)
+            if user is None:
+                return Response({'error': 'Invalid email or password'}, status=status.HTTP_400_BAD_REQUEST)
             
             otp, created = OTP.objects.get_or_create(user=user)
             otp.generate_otp()
@@ -65,14 +56,15 @@ class OTPVerifyView(APIView):
                 user = User.objects.get(email=email)
                 otp = OTP.objects.get(user=user, otp_code=otp_code)
 
+                # Debugging: Print the current time and OTP creation time
                 current_time = timezone.now()
                 print(f"Current time: {current_time}")
                 print(f"OTP created_at: {otp.created_at}")
                 print(f"Difference: {current_time - otp.created_at}")
 
                 # Check if OTP is expired (valid for 5 minutes)
-                # if otp.created_at < timezone.now() - timedelta(minutes=5):
-                #     return Response({'error': 'OTP expired'}, status=status.HTTP_400_BAD_REQUEST)
+                if otp.created_at < current_time - timedelta(minutes=5):
+                    return Response({'error': 'OTP expired'}, status=status.HTTP_400_BAD_REQUEST)
                 
                 # Generate JWT tokens
                 refresh = RefreshToken.for_user(user)
