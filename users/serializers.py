@@ -15,9 +15,10 @@ from .models import UserProfile
 class UserRegistrationSerializer(serializers.ModelSerializer):
     empId = serializers.CharField(max_length=10, write_only=True)
     email=serializers.EmailField()
+    role=serializers.CharField()
     class Meta:
         model = User
-        fields = ['username', 'password', 'empId','email']
+        fields = ['username', 'password', 'empId','email','role']
         extra_kwargs = {
             'password': {'write_only': True}
         }
@@ -25,11 +26,13 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         empId = validated_data.pop('empId')
         email=validated_data.get('email')
+        role=validated_data.get('role')
         user = User.objects.create_user(
             username=validated_data['username'],
             password=validated_data['password'],
-            email=validated_data['email']
+            email=validated_data['email'],
+            role=validated_data['role']
         )
-        UserProfile.objects.create(user=user, empId=empId,email=email)
+        UserProfile.objects.create(user=user, empId=empId,email=email,role=role)
         return user
 
