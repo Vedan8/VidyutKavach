@@ -26,6 +26,7 @@ class OTPRequestView(APIView):
             empId = serializer.validated_data['empId']
             password = serializer.validated_data['password']
             user = authenticate(request, empId=empId, password=password)
+            profile = UserProfile.objects.get(empId=empId)
             if user is None:
                 return Response({'error': 'Invalid empId or password'}, status=status.HTTP_400_BAD_REQUEST)
             
@@ -34,12 +35,12 @@ class OTPRequestView(APIView):
             # Send OTP via email
             send_mail(
                 'Your OTP Code',
-                f'Your OTP code is {otp.otp_code}',
+                f'Your OTP code is {otp.otp}',
                 'otpkjaef@gmail.com',  # From email address
                 [user.email],
                 fail_silently=False,
             )
-            return Response({'message': 'OTP sent'}, status=status.HTTP_200_OK)
+            return Response({'message': 'OTP sent','email':profile.user.email}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class OTPVerifyView(APIView):
@@ -47,11 +48,11 @@ class OTPVerifyView(APIView):
         serializer = OTPVerifySerializer(data=request.data)
         if serializer.is_valid():
             empId = serializer.validated_data['empId']
-            otp_code = serializer.validated_data['otp_code']
+            otp = serializer.validated_data['otp']
             try:
                 profile = UserProfile.objects.get(empId=empId)
                 user = profile.user
-                otp = OTP.objects.get(user=user, otp_code=otp_code)
+                otp = OTP.objects.get(user=user, otp=otp)
                 # Check if OTP is expired (valid for 5 minutes)
                 # if otp.created_at < timezone.now() - timedelta(minutes=5):
                 #     return Response({'error': 'OTP expired'}, status=status.HTTP_400_BAD_REQUEST)
@@ -60,8 +61,7 @@ class OTPVerifyView(APIView):
                 refresh = RefreshToken.for_user(user)
                 return Response({
                     'refresh': str(refresh),
-                    'access': str(refresh.access_token),
-                    'email':user.email
+                    'access': str(refresh.access_token)
                 }, status=status.HTTP_200_OK)
             except (UserProfile.DoesNotExist, OTP.DoesNotExist):
                 return Response({'error': 'Invalid OTP or empId'}, status=status.HTTP_400_BAD_REQUEST)

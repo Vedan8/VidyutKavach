@@ -8,7 +8,7 @@ class OTPRequestSerializer(serializers.Serializer):
 
 class OTPVerifySerializer(serializers.Serializer):
     empId = serializers.CharField()
-    otp_code = serializers.CharField(max_length=6)
+    otp = serializers.CharField(max_length=6)
 # users/serializers.py
 from .models import UserProfile
 
