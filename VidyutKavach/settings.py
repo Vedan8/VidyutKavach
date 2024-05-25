@@ -90,30 +90,23 @@ WSGI_APPLICATION = 'VidyutKavach.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
 # DATABASES = {
 #     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'VidyutKavach_Data',
-#         'USER': 'vidyutkavach_data_user',
-#         'PASSWORD': 'oXWOMsCKis5iIBkD84igHm2wcsYbfnOl',
-#         'HOST': 'dpg-cp737huv3ddc73ft8r60-a',
-#         'PORT': '5432',
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
-
+import dj_database_url
 import os
-# import dj_database_url
+DATABASES={
+    "default": dj_database_url.parse(os.environ.get("DATABASE_URL"))
+}
 
 
-# DATABASES = {
-#     'default': dj_database_url.config(conn_max_age=600)
-# }
+
+
+
+
 
 # Static files settings
 STATIC_URL = '/static/'
