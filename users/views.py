@@ -35,7 +35,7 @@ class OTPRequestView(APIView):
             send_mail(
                 'Your OTP Code',
                 f'Your OTP code is {otp.otp_code}',
-                'from@example.com',  # From email address
+                'otpkjaef@gmail.com',  # From email address
                 [user.email],
                 fail_silently=False,
             )
@@ -52,7 +52,6 @@ class OTPVerifyView(APIView):
                 profile = UserProfile.objects.get(empId=empId)
                 user = profile.user
                 otp = OTP.objects.get(user=user, otp_code=otp_code)
-
                 # Check if OTP is expired (valid for 5 minutes)
                 # if otp.created_at < timezone.now() - timedelta(minutes=5):
                 #     return Response({'error': 'OTP expired'}, status=status.HTTP_400_BAD_REQUEST)
@@ -62,6 +61,7 @@ class OTPVerifyView(APIView):
                 return Response({
                     'refresh': str(refresh),
                     'access': str(refresh.access_token),
+                    'email':user.email
                 }, status=status.HTTP_200_OK)
             except (UserProfile.DoesNotExist, OTP.DoesNotExist):
                 return Response({'error': 'Invalid OTP or empId'}, status=status.HTTP_400_BAD_REQUEST)

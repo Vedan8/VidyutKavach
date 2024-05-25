@@ -8,6 +8,7 @@ from django.utils import timezone
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     empId = models.CharField(max_length=10, unique=True)
+    email=models.EmailField()
 
     def __str__(self):
         return self.empId

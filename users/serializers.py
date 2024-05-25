@@ -10,26 +10,26 @@ class OTPVerifySerializer(serializers.Serializer):
     empId = serializers.CharField()
     otp_code = serializers.CharField(max_length=6)
 # users/serializers.py
-from django.contrib.auth.models import User
-from rest_framework import serializers
 from .models import UserProfile
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     empId = serializers.CharField(max_length=10, write_only=True)
-
+    email=serializers.EmailField()
     class Meta:
         model = User
-        fields = ['username', 'password', 'empId']
+        fields = ['username', 'password', 'empId','email']
         extra_kwargs = {
             'password': {'write_only': True}
         }
 
     def create(self, validated_data):
         empId = validated_data.pop('empId')
+        email=validated_data.get('email')
         user = User.objects.create_user(
             username=validated_data['username'],
-            password=validated_data['password']
+            password=validated_data['password'],
+            email=validated_data['email']
         )
-        UserProfile.objects.create(user=user, empId=empId)
+        UserProfile.objects.create(user=user, empId=empId,email=email)
         return user
 
