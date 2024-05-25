@@ -1,5 +1,4 @@
 from django.contrib import admin
-from .models import OTP,Address
+from .models import OTP
 admin.site.register(OTP)
-admin.site.register(Address)
 # Register your models here.

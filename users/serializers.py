@@ -1,37 +1,35 @@
 # users/serializers.py
-from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Address
+from rest_framework import serializers
 
 class OTPRequestSerializer(serializers.Serializer):
-    email = serializers.EmailField()
+    empId = serializers.CharField()
     password = serializers.CharField(write_only=True)
 
 class OTPVerifySerializer(serializers.Serializer):
-    email = serializers.EmailField()
+    empId = serializers.CharField()
     otp_code = serializers.CharField(max_length=6)
+# users/serializers.py
+from django.contrib.auth.models import User
+from rest_framework import serializers
+from .models import UserProfile
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
+    empId = serializers.CharField(max_length=10, write_only=True)
 
     class Meta:
         model = User
-        fields = ['email', 'password']
-
-    def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("Email is already in use.")
-        return value
+        fields = ['username', 'password', 'empId']
+        extra_kwargs = {
+            'password': {'write_only': True}
+        }
 
     def create(self, validated_data):
+        empId = validated_data.pop('empId')
         user = User.objects.create_user(
-            username=validated_data['email'],  # Set the username to the email for simplicity
-            email=validated_data['email'],
+            username=validated_data['username'],
             password=validated_data['password']
         )
+        UserProfile.objects.create(user=user, empId=empId)
         return user
 
-class AddressSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Address
-        fields = ['address_line1', 'address_line2', 'city']
