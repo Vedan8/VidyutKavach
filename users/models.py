@@ -3,6 +3,7 @@ from django.db import models
 import random
 import string
 from django.utils import timezone
+from datetime import timedelta
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, empId, email, role, password=None, **extra_fields):
@@ -47,7 +48,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         self.save()
 
     def verify_otp(self, otp):
-        if self.otp == otp and (timezone.now() - self.otp_created_at).seconds < 300:
+        if self.otp == otp and (timezone.now() - self.otp_created_at) < timedelta(minutes=5):
             self.otp = None
             self.save()
             return True

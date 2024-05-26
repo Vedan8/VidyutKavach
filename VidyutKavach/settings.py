@@ -110,7 +110,6 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 
-AUTH_USER_MODEL = 'users.CustomUser'
 
 
 
@@ -167,10 +166,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 #     'django.contrib.auth.backends.ModelBackend',
 #     'allauth.account.auth_backends.AuthenticationBackend',
 # )
-AUTHENTICATION_BACKENDS = [
-    'users.authentication.EmpIdBackend',
-    'django.contrib.auth.backends.ModelBackend',
-]
+
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (

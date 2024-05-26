@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from django.core.mail import send_mail
 from django.contrib.auth import authenticate, login as auth_login
 from .models import CustomUser
-from .serializers import LoginSerializer, OTPVerifySerializer
+from .serializers import LoginSerializer, OTPVerifySerializer, UserRegistrationSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -46,13 +46,26 @@ class VerifyOTPView(APIView):
         empId = serializer.validated_data['empId']
         otp = serializer.validated_data['otp']
 
+        logger.debug(f"Verifying OTP for empId: {empId}, provided OTP: {otp}")
+
         try:
             user = CustomUser.objects.get(empId=empId)
         except CustomUser.DoesNotExist:
+            logger.debug(f"User with empId {empId} does not exist.")
             return Response({"error": "User with this empId does not exist."}, status=status.HTTP_400_BAD_REQUEST)
 
         if user.verify_otp(otp):
             auth_login(request, user)
+            logger.debug(f"OTP verification successful for empId {empId}")
             return Response({"message": "OTP verified and user logged in."}, status=status.HTTP_200_OK)
         else:
+            logger.debug(f"Invalid or expired OTP for empId {empId}")
             return Response({"error": "Invalid or expired OTP."}, status=status.HTTP_400_BAD_REQUEST)
+
+class UserRegistrationView(APIView):
+    def post(self, request, *args, **kwargs):
+        serializer = UserRegistrationSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            return Response({"message": "User registered successfully."}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
