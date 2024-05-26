@@ -103,8 +103,14 @@ DATABASES={
     "default": dj_database_url.parse(os.environ.get("DATABASE_URL"))
 }
 
+AUTH_USER_MODEL = 'users.CustomUser'
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 
+AUTH_USER_MODEL = 'users.CustomUser'
 
 
 

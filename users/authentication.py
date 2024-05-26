@@ -1,15 +1,15 @@
 # users/authentication.py
 from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth import get_user_model
-from .models import UserProfile
+from .models import CustomUser
 
 class EmpIdBackend(ModelBackend):
     def authenticate(self, request, empId=None, password=None, **kwargs):
         User = get_user_model()
         try:
-            profile = UserProfile.objects.get(empId=empId)
+            profile = CustomUser.objects.get(empId=empId)
             user = profile.user
-        except UserProfile.DoesNotExist:
+        except CustomUser.DoesNotExist:
             return None
         
         if user.check_password(password):
